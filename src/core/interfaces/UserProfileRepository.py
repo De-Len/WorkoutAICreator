@@ -2,10 +2,10 @@ from abc import abstractmethod, ABC
 from typing import Optional
 from uuid import UUID
 
+from src.core.entities.UserProfile import UserProfile
+
 
 class UserProfileRepository(ABC):
-    """Абстрактный репозиторий для профилей пользователей"""
-
     @abstractmethod
     async def get_by_id(self, profile_id: UUID) -> Optional[UserProfile]:
         pass
