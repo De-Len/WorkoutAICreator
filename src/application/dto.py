@@ -2,7 +2,12 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
-from src.core.entities import Gender, GoalType, TrainingExperience, TrainingStyle
+
+from src.core.entities.Gender import Gender
+from src.core.entities.GoalType import GoalType
+from src.core.entities.TrainingExperience import TrainingExperience
+from src.core.entities.TrainingStyle import TrainingStyle
+
 
 # DTO для входящих данных
 class UserProfileStep1DTO(BaseModel):

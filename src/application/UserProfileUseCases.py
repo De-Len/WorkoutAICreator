@@ -4,7 +4,8 @@ from uuid import UUID
 from src.application.dto import CreateUserProfileDTO, UserProfileResponseDTO, UserProfileStep2DTO, \
     GenerateProgramRequestDTO, TrainingProgramResponseDTO, UserProfileStep1DTO
 from src.application.exceptions import ProfileNotFoundError, IncompleteProfileError
-from src.core.entities import UserProfile, TrainingProgram
+from src.core.entities.TrainingProgram import TrainingProgram
+from src.core.entities.UserProfile import UserProfile
 from src.core.interfaces.LLMService import LLMService
 from src.core.interfaces.TrainingProgramRepository import TrainingProgramRepository
 from src.core.interfaces.UserProfileRepository import UserProfileRepository
