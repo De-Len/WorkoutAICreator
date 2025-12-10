@@ -54,11 +54,25 @@ class UserProfile:
 
     def is_complete(self) -> bool:
         """Проверка, заполнен ли профиль полностью"""
+        # Обязательные поля (не могут быть пустыми)
         required_fields = [
             self.gender, self.age, self.height, self.weight,
             self.goal, self.months,
             self.current_results, self.last_trained,
-            self.workouts_per_week, self.workout_duration, self.training_style,
-            self.health_restrictions, self.preferences
+            self.workouts_per_week, self.workout_duration, self.training_style
         ]
-        return all(field is not None for field in required_fields)
+
+        # health_restrictions и preferences могут быть пустыми
+        # но должны быть установлены (не None)
+        optional_but_required_fields = [
+            self.health_restrictions,
+            self.preferences
+        ]
+
+        # Все обязательные поля должны быть не None
+        all_required = all(field is not None for field in required_fields)
+
+        # Опциональные поля должны быть не None (но могут быть пустыми строками)
+        all_optional = all(field is not None for field in optional_but_required_fields)
+
+        return all_required and all_optional

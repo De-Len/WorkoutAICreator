@@ -13,18 +13,16 @@ class OpenRouterLLMService(LLMService):
     """Реализация LLM сервиса через OpenRouter API"""
 
     def __init__(self, config: Config):
-        self.api_key = config.llm.api_key
-        self.api_url = config.llm.api_url
         self.model_name = config.llm.model_name
-        # self.client = AsyncOpenAI(
-        #     api_key=config.llm.api_key,
-        #     base_url=config.llm.api_url,
-        # )
+        self.client = AsyncOpenAI(
+            api_key=config.llm.api_key,
+            base_url=config.llm.api_url,
+        )
 
     # async def generate_response(self, messages: list) -> str:
     #     try:
     #         chat_completion = await self.client.chat.completions.create(
-    #             model=self.model,
+    #             model=self.model_name,
     #             messages=messages
     #         )
     #         return chat_completion.choices[0].message.content
@@ -36,15 +34,7 @@ class OpenRouterLLMService(LLMService):
 
         prompt = self._create_prompt(user_data)
 
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://fitness-app.com",
-        }
-
-        payload = {
-            "model": self.model_name,
-            "messages": [
+        messages = [
                 {
                     "role": "system",
                     "content": """Ты профессиональный тренер и спортивный диетолог. 
@@ -55,27 +45,29 @@ class OpenRouterLLMService(LLMService):
                     "role": "user",
                     "content": prompt
                 }
-            ],
-            "temperature": 0.7,
-            "max_tokens": 2000
-        }
+            ]
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                        self.api_url,
-                        json=payload,
-                        headers=headers,
-                        timeout=30
-                ) as response:
-                    if response.status == 200:
-                        result = await response.json()
-                        return result['choices'][0]['message']['content']
-                    else:
-                        error_text = await response.text()
-                        raise LLMServiceError(
-                            f"API error {response.status}: {error_text}"
-                        )
+            # async with aiohttp.ClientSession() as session:
+            #     async with session.post(
+            #             self.api_url,
+            #             json=payload,
+            #             headers=headers,
+            #             timeout=30
+            #     ) as response:
+            #         if response.status == 200:
+            #             result = await response.json()
+            #             return result['choices'][0]['message']['content']
+            #         else:
+            #             error_text = await response.text()
+            #             raise LLMServiceError(
+            #                 f"API error {response.status}: {error_text}"
+            #             )
+            chat_completion = await self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages
+            )
+            return chat_completion.choices[0].message.content
         except aiohttp.ClientError as e:
             raise LLMServiceError(f"Network error: {str(e)}")
 
