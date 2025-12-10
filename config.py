@@ -13,8 +13,8 @@ class TelegramConfig:
 @dataclass
 class LLMConfig:
     api_key: str = os.getenv("OPENROUTER_API_KEY")
-    api_url: str = "https://openrouter.ai/api/v1/chat/completions"
-    model_name: str = "openai/gpt-3.5-turbo"
+    api_url: str = "https://api.proxyapi.ru/openrouter/v1"
+    model_name: str = "deepseek/deepseek-chat-v3-0324"
 
 @dataclass
 class DatabaseConfig:

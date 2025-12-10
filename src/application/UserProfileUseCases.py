@@ -2,7 +2,8 @@ from typing import Optional
 from uuid import UUID
 
 from src.application.dto import CreateUserProfileDTO, UserProfileResponseDTO, UserProfileStep2DTO, \
-    GenerateProgramRequestDTO, TrainingProgramResponseDTO, UserProfileStep1DTO
+    GenerateProgramRequestDTO, TrainingProgramResponseDTO, UserProfileStep1DTO, UserProfileStep5DTO, \
+    UserProfileStep4DTO, UserProfileStep3DTO
 from src.application.exceptions import ProfileNotFoundError, IncompleteProfileError
 from src.core.entities.TrainingProgram import TrainingProgram
 from src.core.entities.UserProfile import UserProfile
@@ -26,9 +27,12 @@ class UserProfileUseCases:
 
     async def create_profile(self, dto: CreateUserProfileDTO) -> UserProfileResponseDTO:
         """Создание нового профиля"""
+        # Создаем профиль без session_id
         profile = UserProfile(
             telegram_id=dto.telegram_id
+            # session_id не указываем - будет равен id
         )
+
         profile = await self.profile_repository.save(profile)
 
         return UserProfileResponseDTO(
@@ -92,7 +96,81 @@ class UserProfileUseCases:
             updated_at=updated_profile.updated_at
         )
 
-    # Аналогичные методы для шагов 3, 4, 5
+    async def update_step3(
+            self,
+            session_id: str,
+            dto: UserProfileStep3DTO
+    ) -> UserProfileResponseDTO:
+        """Обновление шага 3 профиля"""
+        profile = await self.profile_repository.get_by_session_id(session_id)
+        if not profile:
+            raise ProfileNotFoundError(session_id)
+
+        profile.update(
+            current_results=dto.current_results,
+            last_trained=dto.last_trained
+        )
+
+        updated_profile = await self.profile_repository.update(profile)
+
+        return UserProfileResponseDTO(
+            id=updated_profile.id,
+            telegram_id=updated_profile.telegram_id,
+            is_complete=updated_profile.is_complete(),
+            created_at=updated_profile.created_at,
+            updated_at=updated_profile.updated_at
+        )
+
+    async def update_step4(
+            self,
+            session_id: str,
+            dto: UserProfileStep4DTO
+    ) -> UserProfileResponseDTO:
+        """Обновление шага 4 профиля"""
+        profile = await self.profile_repository.get_by_session_id(session_id)
+        if not profile:
+            raise ProfileNotFoundError(session_id)
+
+        profile.update(
+            workouts_per_week=dto.workouts_per_week,
+            workout_duration=dto.workout_duration,
+            training_style=dto.training_style
+        )
+
+        updated_profile = await self.profile_repository.update(profile)
+
+        return UserProfileResponseDTO(
+            id=updated_profile.id,
+            telegram_id=updated_profile.telegram_id,
+            is_complete=updated_profile.is_complete(),
+            created_at=updated_profile.created_at,
+            updated_at=updated_profile.updated_at
+        )
+
+    async def update_step5(
+            self,
+            session_id: str,
+            dto: UserProfileStep5DTO
+    ) -> UserProfileResponseDTO:
+        """Обновление шага 5 профиля"""
+        profile = await self.profile_repository.get_by_session_id(session_id)
+        if not profile:
+            raise ProfileNotFoundError(session_id)
+
+        profile.update(
+            health_restrictions=dto.health_restrictions,
+            preferences=dto.preferences
+        )
+
+        updated_profile = await self.profile_repository.update(profile)
+
+        return UserProfileResponseDTO(
+            id=updated_profile.id,
+            telegram_id=updated_profile.telegram_id,
+            is_complete=updated_profile.is_complete(),
+            created_at=updated_profile.created_at,
+            updated_at=updated_profile.updated_at
+        )
 
     async def generate_program(
             self,

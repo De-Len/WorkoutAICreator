@@ -3,64 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Генератор программ тренировок</title>
+    <title>🏋️ Генератор тренировок</title>
+    <!-- Telegram Web App SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'tg-bg': 'var(--tg-theme-bg-color)',
+                        'tg-text': 'var(--tg-theme-text-color)',
+                        'tg-hint': 'var(--tg-theme-hint-color)',
+                        'tg-button': 'var(--tg-theme-button-color)',
+                        'tg-button-text': 'var(--tg-theme-button-text-color)',
+                        'tg-secondary': 'var(--tg-theme-secondary-bg-color)',
+                    }
+                }
+            }
+        }
+    </script>
     <style>
+        :root {
+            --tg-theme-bg-color: #ffffff;
+            --tg-theme-text-color: #000000;
+            --tg-theme-hint-color: #999999;
+            --tg-theme-link-color: #2481cc;
+            --tg-theme-button-color: #2481cc;
+            --tg-theme-button-text-color: #ffffff;
+            --tg-theme-secondary-bg-color: #f1f1f1;
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--tg-theme-bg-color);
+            color: var(--tg-theme-text-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+        }
+
+        /* Стили для полей ввода в темной теме */
+        input, textarea, select {
+            background-color: var(--tg-theme-secondary-bg-color) !important;
+            color: var(--tg-theme-text-color) !important;
+            border-color: var(--tg-theme-hint-color) !important;
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: var(--tg-theme-hint-color) !important;
+        }
+
+        .tg-button {
+            background-color: var(--tg-theme-button-color);
+            color: var(--tg-theme-button-text-color);
+        }
+
+        .tg-button:hover {
+            opacity: 0.9;
+        }
+
+        .tg-secondary-bg {
+            background-color: var(--tg-theme-secondary-bg-color);
+        }
+
+        .border-tg-hint {
+            border-color: var(--tg-theme-hint-color);
+        }
+
+        .text-tg-hint {
+            color: var(--tg-theme-hint-color);
+        }
+
         .fade-in {
             animation: fadeIn 0.3s ease-in-out;
         }
+
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .btn-disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+
+        /* Кастомный скроллбар */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--tg-theme-secondary-bg-color);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--tg-theme-button-color);
+            border-radius: 3px;
+        }
+
+        /* Стили для выбранных элементов */
+        .selected {
+            border-color: var(--tg-theme-button-color) !important;
+            background-color: rgba(36, 129, 204, 0.1) !important;
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-    <div class="container mx-auto px-4 py-8">
-        <div id="app"></div>
-    </div>
+<body class="min-h-screen">
+    <div id="app" class="container mx-auto px-4 pb-20 pt-4"></div>
 
     <script>
         class FitnessApp extends HTMLElement {
             constructor() {
                 super();
+                this.tg = window.Telegram?.WebApp;
                 this.sessionId = null;
                 this.currentStep = 1;
                 this.totalSteps = 5;
-                this.userData = {
-                    step1: {},
-                    step2: {},
-                    step3: {},
-                    step4: {},
-                    step5: {}
-                };
+                this.userData = {};
                 this.isLoading = false;
+                this.telegramUser = null;
+                this.programContent = null;
+
+                this.initTelegram();
             }
 
             async connectedCallback() {
-                await this.startSession();
                 this.render();
+                await this.startSession();
+            }
+
+            initTelegram() {
+                if (this.tg) {
+                    // Развернуть на весь экран
+                    this.tg.expand();
+
+                    // Получить данные пользователя
+                    this.telegramUser = this.tg.initDataUnsafe?.user;
+
+                    // Применить тему Telegram
+                    this.applyTelegramTheme();
+
+                    // Настроить кнопку "Назад"
+                    this.setupBackButton();
+
+                    // Настроить главную кнопку
+                    this.setupMainButton();
+
+                    console.log('Telegram Web App initialized:', {
+                        user: this.telegramUser,
+                        theme: this.tg.themeParams
+                    });
+                }
+            }
+
+            applyTelegramTheme() {
+                if (this.tg && this.tg.themeParams) {
+                    // Применяем цвета Telegram
+                    const root = document.documentElement;
+                    root.style.setProperty('--tg-theme-bg-color', this.tg.themeParams.bg_color || '#ffffff');
+                    root.style.setProperty('--tg-theme-text-color', this.tg.themeParams.text_color || '#000000');
+                    root.style.setProperty('--tg-theme-hint-color', this.tg.themeParams.hint_color || '#999999');
+                    root.style.setProperty('--tg-theme-button-color', this.tg.themeParams.button_color || '#2481cc');
+                    root.style.setProperty('--tg-theme-button-text-color', this.tg.themeParams.button_text_color || '#ffffff');
+                    root.style.setProperty('--tg-theme-secondary-bg-color', this.tg.themeParams.secondary_bg_color || '#f1f1f1');
+                }
+            }
+
+            setupBackButton() {
+                if (this.tg) {
+                    this.tg.BackButton.show();
+                    this.tg.BackButton.onClick(() => {
+                        if (this.currentStep > 1) {
+                            this.prevStep();
+                        } else {
+                            this.tg.close();
+                        }
+                    });
+                }
+            }
+
+            setupMainButton() {
+                if (this.tg) {
+                    this.tg.MainButton.hide();
+                    this.tg.MainButton.setParams({
+                        text: 'ДАЛЕЕ',
+                        color: this.tg.themeParams.button_color || '#2481cc',
+                        text_color: this.tg.themeParams.button_text_color || '#ffffff'
+                    });
+                    this.tg.MainButton.onClick(() => this.nextStep());
+                }
+            }
+
+            updateMainButton() {
+                if (!this.tg) return;
+
+                const isValid = this.validateCurrentStep();
+                if (isValid && this.currentStep <= this.totalSteps) {
+                    this.tg.MainButton.setText(this.currentStep === this.totalSteps ? 'СГЕНЕРИРОВАТЬ' : 'ДАЛЕЕ');
+                    this.tg.MainButton.show();
+                } else {
+                    this.tg.MainButton.hide();
+                }
             }
 
             async startSession() {
                 try {
+                    const user_id = this.tg?.initDataUnsafe?.user?.id;
+
                     const response = await fetch('/api/start_session', {
-                        method: 'POST'
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            user_id: user_id ? user_id.toString() : null
+                        })
                     });
+
                     const data = await response.json();
-                    this.sessionId = data.session_id;
-                    console.log('Session started:', this.sessionId);
+                    this.sessionId = data.profile_id;  // Сохраняем profile_id как sessionId
+                    this.profileId = data.profile_id;
+                    console.log('Session started:', data);
                 } catch (error) {
                     console.error('Failed to start session:', error);
-                    this.showError('Не удалось начать сессию. Пожалуйста, обновите страницу.');
                 }
             }
 
+
             async saveStep(stepData) {
+                if (!this.sessionId) {
+                    this.showError('Сессия не начата');
+                    return null;
+                }
+
                 this.isLoading = true;
                 this.render();
 
@@ -71,19 +245,22 @@
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            session_id: this.sessionId,
+                            profile_id: this.profileId,  // Отправляем profile_id
+                            session_id: this.profileId,  // И session_id для совместимости
                             ...stepData
                         })
                     });
 
+
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        const errorText = await response.text();
+                        throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
                     }
 
                     return await response.json();
                 } catch (error) {
                     console.error('Failed to save step:', error);
-                    this.showError('Не удалось сохранить данные. Попробуйте еще раз.');
+                    this.showError(`Не удалось сохранить шаг ${stepNumber}: ${error.message}`);
                     return null;
                 } finally {
                     this.isLoading = false;
@@ -91,6 +268,11 @@
             }
 
             async generateProgram() {
+                if (!this.sessionId) {
+                    this.showError('Сессия не начата');
+                    return null;
+                }
+
                 this.isLoading = true;
                 this.render();
 
@@ -106,13 +288,15 @@
                     });
 
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        const errorText = await response.text();
+                        throw new Error(`HTTP error! status: ${response.status}, ${errorText}`);
                     }
 
-                    return await response.json();
+                    const result = await response.json();
+                    return result;
                 } catch (error) {
                     console.error('Failed to generate program:', error);
-                    this.showError('Не удалось сгенерировать программу. Попробуйте еще раз.');
+                    this.showError(`Не удалось сгенерировать программу: ${error.message}`);
                     return null;
                 } finally {
                     this.isLoading = false;
@@ -121,73 +305,69 @@
 
             render() {
                 this.innerHTML = `
-                    <div class="max-w-2xl mx-auto fade-in">
-                        <h1 class="text-3xl font-bold text-center mb-8 text-blue-600">
-                            🏋️ Генератор программ тренировок
-                        </h1>
+                    <div class="max-w-lg mx-auto fade-in">
+                        <div class="mb-6">
+                            <h1 class="text-2xl font-bold text-center mb-2 text-tg-text">
+                                🏋️ Генератор тренировок
+                            </h1>
+                            ${this.telegramUser ? `
+                                <p class="text-center text-sm text-tg-hint">
+                                    Привет, ${this.telegramUser.first_name}!
+                                </p>
+                            ` : ''}
 
-                        ${this.isLoading ? this.renderLoader() : ''}
-
-                        <div class="bg-white rounded-lg shadow-lg p-6">
-                            <div class="mb-6">
-                                <div class="flex justify-between mb-2">
-                                    <span class="text-sm font-medium text-gray-600">Прогресс</span>
-                                    <span class="text-sm font-medium text-gray-600">Шаг ${this.currentStep} из ${this.totalSteps}</span>
+                            <div class="mt-4">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-tg-text">Прогресс</span>
+                                    <span class="text-tg-text">Шаг ${this.currentStep} из ${this.totalSteps}</span>
                                 </div>
-                                <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                    <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                                <div class="w-full bg-tg-secondary rounded-full h-2">
+                                    <div class="tg-button h-2 rounded-full transition-all duration-300"
                                          style="width: ${(this.currentStep / this.totalSteps) * 100}%">
                                     </div>
                                 </div>
                             </div>
-
-                            <div id="step-content" class="min-h-[400px]">
-                                ${this.renderStep()}
-                            </div>
-
-                            ${this.currentStep <= this.totalSteps ? this.renderNavigation() : ''}
                         </div>
+
+                        <div class="bg-tg-bg rounded-xl shadow-sm border border-tg-hint p-4 mb-4">
+                            ${this.renderStep()}
+                        </div>
+
+                        <div class="text-center text-xs text-tg-hint mt-2">
+                            Шаг ${this.currentStep}: ${this.getStepDescription()}
+                        </div>
+
+                        ${this.isLoading ? this.renderLoader() : ''}
                     </div>
                 `;
+
+                this.updateMainButton();
+                this.attachEventListeners();
             }
 
             renderLoader() {
                 return `
                     <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div class="bg-white p-6 rounded-lg shadow-lg">
+                        <div class="bg-tg-bg p-6 rounded-xl border border-tg-hint">
                             <div class="flex items-center space-x-3">
-                                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                                <span class="text-gray-700">${this.currentStep === 6 ? 'Генерируем программу...' : 'Сохранение...'}</span>
+                                <div class="animate-spin rounded-full h-6 w-6 border-b-2 tg-button"></div>
+                                <span class="text-tg-text">${this.currentStep === 6 ? 'Генерация программы...' : 'Сохранение...'}</span>
                             </div>
                         </div>
                     </div>
                 `;
             }
 
-            renderNavigation() {
-                return `
-                    <div class="flex justify-between mt-6 pt-6 border-t">
-                        <button onclick="app.prevStep()"
-                                class="px-4 py-2 text-gray-600 hover:text-gray-800 ${this.currentStep === 1 ? 'invisible' : ''}">
-                            ← Назад
-                        </button>
-                        <div class="flex space-x-3">
-                            ${this.currentStep < this.totalSteps ? `
-                                <button onclick="app.nextStep()"
-                                        class="px-6 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition disabled:opacity-50"
-                                        id="next-btn">
-                                    Далее
-                                </button>
-                            ` : `
-                                <button onclick="app.finalize()"
-                                        class="px-6 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
-                                        id="generate-btn">
-                                    Сгенерировать программу
-                                </button>
-                            `}
-                        </div>
-                    </div>
-                `;
+            getStepDescription() {
+                const descriptions = {
+                    1: 'Основная информация',
+                    2: 'Цель тренировок',
+                    3: 'Опыт и результаты',
+                    4: 'Расписание и стиль',
+                    5: 'Ограничения и предпочтения',
+                    6: 'Результат'
+                };
+                return descriptions[this.currentStep] || '';
             }
 
             renderStep() {
@@ -205,55 +385,54 @@
             renderStep1() {
                 return `
                     <div class="fade-in">
-                        <h2 class="text-2xl font-semibold mb-6 text-gray-800">Шаг 1: Расскажите о себе</h2>
+                        <h2 class="text-lg font-semibold mb-4 text-tg-text">1. Расскажите о себе</h2>
 
-                        <div class="space-y-6">
+                        <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Пол</label>
-                                <div class="flex space-x-4">
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="radio" name="gender" value="male" class="w-4 h-4 text-blue-600"
-                                               ${this.userData.step1.gender === 'male' ? 'checked' : ''}>
-                                        <span class="text-gray-700">Мужской</span>
-                                    </label>
-                                    <label class="flex items-center space-x-2 cursor-pointer">
-                                        <input type="radio" name="gender" value="female" class="w-4 h-4 text-blue-600"
-                                               ${this.userData.step1.gender === 'female' ? 'checked' : ''}>
-                                        <span class="text-gray-700">Женский</span>
-                                    </label>
+                                <label class="block text-sm font-medium mb-2 text-tg-text">Пол</label>
+                                <div class="flex space-x-3">
+                                    <button type="button"
+                                            class="flex-1 py-3 text-center border rounded-lg ${this.userData.gender === 'male' ? 'selected border-tg-button' : 'border-tg-hint'}"
+                                            onclick="app.selectGender('male')">
+                                        <span class="${this.userData.gender === 'male' ? 'text-tg-button' : 'text-tg-text'}">Мужской</span>
+                                    </button>
+                                    <button type="button"
+                                            class="flex-1 py-3 text-center border rounded-lg ${this.userData.gender === 'female' ? 'selected border-tg-button' : 'border-tg-hint'}"
+                                            onclick="app.selectGender('female')">
+                                        <span class="${this.userData.gender === 'female' ? 'text-tg-button' : 'text-tg-text'}">Женский</span>
+                                    </button>
                                 </div>
-                            </div>
-
-                            <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Возраст (лет)</label>
-                                <input type="number" id="age"
-                                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                       min="10" max="100"
-                                       value="${this.userData.step1.age || ''}"
-                                       placeholder="Введите ваш возраст">
                             </div>
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label class="block text-sm font-medium mb-2 text-gray-700">Рост (см)</label>
-                                    <input type="number" id="height"
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                           min="100" max="250"
-                                           value="${this.userData.step1.height || ''}"
-                                           placeholder="Рост">
+                                    <label class="block text-sm font-medium mb-2 text-tg-text">Возраст</label>
+                                    <input type="number" id="age"
+                                           class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-tg-button focus:border-transparent"
+                                           min="10" max="100"
+                                           value="${this.userData.age || ''}"
+                                           placeholder="Лет"
+                                           onchange="app.updateField('age', this.value)">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-2 text-gray-700">Вес (кг)</label>
-                                    <input type="number" id="weight"
-                                           class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                           min="30" max="200"
-                                           value="${this.userData.step1.weight || ''}"
-                                           placeholder="Вес">
+                                    <label class="block text-sm font-medium mb-2 text-tg-text">Рост</label>
+                                    <input type="number" id="height"
+                                           class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-tg-button focus:border-transparent"
+                                           min="100" max="250"
+                                           value="${this.userData.height || ''}"
+                                           placeholder="см"
+                                           onchange="app.updateField('height', this.value)">
                                 </div>
                             </div>
 
-                            <div class="text-sm text-gray-500">
-                                <p>✓ Эти данные помогут создать персонализированную программу</p>
+                            <div>
+                                <label class="block text-sm font-medium mb-2 text-tg-text">Вес</label>
+                                <input type="number" id="weight"
+                                       class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-tg-button focus:border-transparent"
+                                       min="30" max="200"
+                                       value="${this.userData.weight || ''}"
+                                       placeholder="кг"
+                                       onchange="app.updateField('weight', this.value)">
                             </div>
                         </div>
                     </div>
@@ -261,74 +440,50 @@
             }
 
             renderStep2() {
+                const goals = [
+                    { value: 'bench_100kg', text: 'Жим лежа 100 кг', desc: 'Развить силу груди' },
+                    { value: 'lose_7kg', text: 'Похудеть на 7 кг', desc: 'Сбросить вес' },
+                    { value: 'pullups_12', text: 'Подтягиваться 12 раз', desc: 'Улучшить выносливость' },
+                    { value: 'gain_4kg', text: 'Набрать 4 кг мышц', desc: 'Набрать массу' },
+                    { value: 'custom', text: 'Своя цель', desc: 'Опишите свою' }
+                ];
+
                 return `
                     <div class="fade-in">
-                        <h2 class="text-2xl font-semibold mb-6 text-gray-800">Шаг 2: Выберите цель</h2>
+                        <h2 class="text-lg font-semibold mb-4 text-tg-text">2. Выберите цель</h2>
 
-                        <div class="space-y-6">
-                            <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Основная цель</label>
-                                <div class="space-y-3">
-                                    <label class="flex items-start p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step2.goal === 'bench_100kg' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="goal" value="bench_100kg" class="mt-1 mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step2.goal === 'bench_100kg' ? 'checked' : ''}>
-                                        <div>
-                                            <span class="font-medium">Жим лежа 100 кг</span>
-                                            <p class="text-sm text-gray-600 mt-1">Развить силу грудных мышц и трицепсов</p>
-                                        </div>
-                                    </label>
+                        <div class="space-y-3 mb-6">
+                            ${goals.map(goal => `
+                                <button type="button"
+                                        class="w-full text-left p-3 border rounded-lg ${this.userData.goal === goal.value ? 'selected border-tg-button' : 'border-tg-hint'}"
+                                        onclick="app.selectGoal('${goal.value}')">
+                                    <div class="font-medium ${this.userData.goal === goal.value ? 'text-tg-button' : 'text-tg-text'}">${goal.text}</div>
+                                    <div class="text-sm text-tg-hint">${goal.desc}</div>
+                                </button>
+                            `).join('')}
+                        </div>
 
-                                    <label class="flex items-start p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step2.goal === 'lose_7kg' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="goal" value="lose_7kg" class="mt-1 mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step2.goal === 'lose_7kg' ? 'checked' : ''}>
-                                        <div>
-                                            <span class="font-medium">Похудеть на 7 кг</span>
-                                            <p class="text-sm text-gray-600 mt-1">Сбросить лишний вес и улучшить рельеф</p>
-                                        </div>
-                                    </label>
-
-                                    <label class="flex items-start p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step2.goal === 'pullups_12' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="goal" value="pullups_12" class="mt-1 mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step2.goal === 'pullups_12' ? 'checked' : ''}>
-                                        <div>
-                                            <span class="font-medium">Подтягиваться 12 раз подряд</span>
-                                            <p class="text-sm text-gray-600 mt-1">Развить силу спины и бицепсов</p>
-                                        </div>
-                                    </label>
-
-                                    <label class="flex items-start p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step2.goal === 'gain_4kg' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="goal" value="gain_4kg" class="mt-1 mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step2.goal === 'gain_4kg' ? 'checked' : ''}>
-                                        <div>
-                                            <span class="font-medium">Набрать 4 кг мышечной массы</span>
-                                            <p class="text-sm text-gray-600 mt-1">Увеличить объем мышц и силу</p>
-                                        </div>
-                                    </label>
-
-                                    <label class="flex items-start p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step2.goal === 'custom' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="goal" value="custom" class="mt-1 mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step2.goal === 'custom' ? 'checked' : ''}>
-                                        <div>
-                                            <span class="font-medium">Свой вариант</span>
-                                            <input type="text" id="custom-goal"
-                                                   class="w-full mt-2 p-2 border border-gray-300 rounded ${!this.userData.step2.goal || this.userData.step2.goal !== 'custom' ? 'hidden' : ''}"
-                                                   placeholder="Опишите вашу цель..."
-                                                   value="${this.userData.step2.custom_goal || ''}">
-                                        </div>
-                                    </label>
-                                </div>
+                        ${this.userData.goal === 'custom' ? `
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium mb-2 text-tg-text">Опишите вашу цель</label>
+                                <textarea id="custom-goal"
+                                          class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-tg-button focus:border-transparent"
+                                          rows="2"
+                                          placeholder="Например: улучшить выносливость, подготовиться к марафону..."
+                                          onchange="app.updateField('custom_goal', this.value)">${this.userData.custom_goal || ''}</textarea>
                             </div>
+                        ` : ''}
 
-                            <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Срок достижения цели (месяцев)</label>
-                                <input type="range" id="months" min="1" max="12" step="1"
-                                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                                       value="${this.userData.step2.months || 3}">
-                                <div class="flex justify-between mt-1">
-                                    <span class="text-sm text-gray-600">1 месяц</span>
-                                    <span id="months-value" class="font-medium text-blue-600">${this.userData.step2.months || 3} месяцев</span>
-                                    <span class="text-sm text-gray-600">12 месяцев</span>
-                                </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2 text-tg-text">
+                                Срок достижения: <span id="months-value" class="text-tg-button">${this.userData.months || 3}</span> месяцев
+                            </label>
+                            <input type="range" id="months" min="1" max="12" step="1"
+                                   class="w-full h-2 bg-tg-secondary rounded-lg appearance-none cursor-pointer"
+                                   value="${this.userData.months || 3}">
+                            <div class="flex justify-between text-xs text-tg-hint mt-1">
+                                <span>1 месяц</span>
+                                <span>12 месяцев</span>
                             </div>
                         </div>
                     </div>
@@ -336,51 +491,38 @@
             }
 
             renderStep3() {
+                const experiences = [
+                    { value: 'currently', text: 'Сейчас тренируюсь' },
+                    { value: 'lt_3_months', text: 'Менее 3 месяцев назад' },
+                    { value: '3_6_months', text: '3-6 месяцев назад' },
+                    { value: '6_12_months', text: '6-12 месяцев назад' },
+                    { value: 'gt_year', text: 'Больше года назад' }
+                ];
+
                 return `
                     <div class="fade-in">
-                        <h2 class="text-2xl font-semibold mb-6 text-gray-800">Шаг 3: Текущие результаты и опыт</h2>
+                        <h2 class="text-lg font-semibold mb-4 text-tg-text">3. Опыт тренировок</h2>
 
-                        <div class="space-y-6">
+                        <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Ваши лучшие силовые результаты</label>
-                                <textarea id="current-results" rows="4"
-                                          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                          placeholder="Например: жим лежа - 80 кг, присед - 100 кг, становая - 120 кг...">${this.userData.step3.current_results || ''}</textarea>
-                                <p class="text-sm text-gray-500 mt-1">Опишите ваши максимальные результаты в основных упражнениях</p>
+                                <label class="block text-sm font-medium mb-2 text-tg-text">Ваши лучшие результаты</label>
+                                <textarea id="current-results"
+                                          class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-tg-button focus:border-transparent"
+                                          rows="3"
+                                          placeholder="Например: жим лежа - 80кг, присед - 100кг, подтягивания - 8 раз..."
+                                          onchange="app.updateField('current_results', this.value)">${this.userData.current_results || ''}</textarea>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Когда вы тренировались последний раз?</label>
-                                <div class="space-y-3">
-                                    <label class="flex items-center p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step3.last_trained === 'currently' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="last_trained" value="currently" class="mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step3.last_trained === 'currently' ? 'checked' : ''}>
-                                        <span>Сейчас тренируюсь</span>
-                                    </label>
-
-                                    <label class="flex items-center p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step3.last_trained === 'lt_3_months' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="last_trained" value="lt_3_months" class="mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step3.last_trained === 'lt_3_months' ? 'checked' : ''}>
-                                        <span>Менее 3 месяцев назад</span>
-                                    </label>
-
-                                    <label class="flex items-center p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step3.last_trained === '3_6_months' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="last_trained" value="3_6_months" class="mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step3.last_trained === '3_6_months' ? 'checked' : ''}>
-                                        <span>3-6 месяцев назад</span>
-                                    </label>
-
-                                    <label class="flex items-center p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step3.last_trained === '6_12_months' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="last_trained" value="6_12_months" class="mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step3.last_trained === '6_12_months' ? 'checked' : ''}>
-                                        <span>6-12 месяцев назад</span>
-                                    </label>
-
-                                    <label class="flex items-center p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step3.last_trained === 'gt_year' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="last_trained" value="gt_year" class="mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step3.last_trained === 'gt_year' ? 'checked' : ''}>
-                                        <span>Больше года назад</span>
-                                    </label>
+                                <label class="block text-sm font-medium mb-2 text-tg-text">Когда тренировались последний раз?</label>
+                                <div class="space-y-2">
+                                    ${experiences.map(exp => `
+                                        <button type="button"
+                                                class="w-full text-left p-3 border rounded-lg ${this.userData.last_trained === exp.value ? 'selected border-tg-button' : 'border-tg-hint'}"
+                                                onclick="app.selectExperience('${exp.value}')">
+                                            <span class="${this.userData.last_trained === exp.value ? 'text-tg-button' : 'text-tg-text'}">${exp.text}</span>
+                                        </button>
+                                    `).join('')}
                                 </div>
                             </div>
                         </div>
@@ -389,67 +531,54 @@
             }
 
             renderStep4() {
+                const styles = [
+                    { value: 'balanced', text: 'Сбалансированный', desc: 'Оптимальный баланс' },
+                    { value: 'strength', text: 'Силовой', desc: 'Больше силы, меньше повторений' },
+                    { value: 'hypertrophy', text: 'Гипертрофия/Выносливость', desc: 'Больше повторений, рост мышц' }
+                ];
+
                 return `
                     <div class="fade-in">
-                        <h2 class="text-2xl font-semibold mb-6 text-gray-800">Шаг 4: Расписание тренировок</h2>
+                        <h2 class="text-lg font-semibold mb-4 text-tg-text">4. Расписание тренировок</h2>
 
                         <div class="space-y-6">
                             <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Сколько раз в неделю вы можете тренироваться?</label>
-                                <div class="flex space-x-2">
-                                    ${[1, 2, 3, 4, 5, 6].map(num => `
+                                <label class="block text-sm font-medium mb-2 text-tg-text">Сколько раз в неделю можете тренироваться?</label>
+                                <div class="grid grid-cols-7 gap-1">
+                                    ${[1,2,3,4,5,6,7].map(num => `
                                         <button type="button"
-                                                class="flex-1 py-3 text-center border rounded-lg ${this.userData.step4.workouts_per_week === num ? 'bg-blue-500 text-white border-blue-500' : 'border-gray-300 hover:border-blue-500'}"
+                                                class="py-3 text-center border rounded-lg ${this.userData.workouts_per_week === num ? 'selected border-tg-button' : 'border-tg-hint'}"
                                                 onclick="app.selectWorkoutsPerWeek(${num})">
-                                            ${num}
+                                            <span class="${this.userData.workouts_per_week === num ? 'text-tg-button' : 'text-tg-text'}">${num}</span>
                                         </button>
                                     `).join('')}
                                 </div>
-                                <p class="text-sm text-gray-500 mt-2">Выберите количество тренировок в неделю</p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Средняя продолжительность одной тренировки</label>
-                                <div class="grid grid-cols-4 gap-2">
-                                    ${[30, 45, 60, 75, 90, 105, 120].map(minutes => `
+                                <label class="block text-sm font-medium mb-2 text-tg-text">Длительность одной тренировки</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    ${[30, 45, 60, 75, 90, 120].map(minutes => `
                                         <button type="button"
-                                                class="py-3 text-center border rounded-lg ${this.userData.step4.workout_duration === minutes ? 'bg-blue-500 text-white border-blue-500' : 'border-gray-300 hover:border-blue-500'}"
+                                                class="py-3 text-center border rounded-lg ${this.userData.workout_duration === minutes ? 'selected border-tg-button' : 'border-tg-hint'}"
                                                 onclick="app.selectWorkoutDuration(${minutes})">
-                                            ${minutes} мин
+                                            <span class="${this.userData.workout_duration === minutes ? 'text-tg-button' : 'text-tg-text'}">${minutes} мин</span>
                                         </button>
                                     `).join('')}
                                 </div>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Предпочитаемый стиль тренировок</label>
-                                <div class="space-y-3">
-                                    <label class="flex items-start p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step4.training_style === 'balanced' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="training_style" value="balanced" class="mt-1 mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step4.training_style === 'balanced' ? 'checked' : ''}>
-                                        <div>
-                                            <span class="font-medium">Сбалансированный</span>
-                                            <p class="text-sm text-gray-600 mt-1">Оптимальное соотношение подходов и повторений для комплексного развития</p>
-                                        </div>
-                                    </label>
-
-                                    <label class="flex items-start p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step4.training_style === 'strength' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="training_style" value="strength" class="mt-1 mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step4.training_style === 'strength' ? 'checked' : ''}>
-                                        <div>
-                                            <span class="font-medium">Силовой</span>
-                                            <p class="text-sm text-gray-600 mt-1">Больше подходов, меньше повторений - для развития максимальной силы</p>
-                                        </div>
-                                    </label>
-
-                                    <label class="flex items-start p-3 border border-gray-300 rounded-lg hover:border-blue-500 cursor-pointer ${this.userData.step4.training_style === 'hypertrophy' ? 'border-blue-500 bg-blue-50' : ''}">
-                                        <input type="radio" name="training_style" value="hypertrophy" class="mt-1 mr-3 w-4 h-4 text-blue-600"
-                                               ${this.userData.step4.training_style === 'hypertrophy' ? 'checked' : ''}>
-                                        <div>
-                                            <span class="font-medium">Гипертрофия/Выносливость</span>
-                                            <p class="text-sm text-gray-600 mt-1">Меньше подходов, больше повторений - для роста мышц и выносливости</p>
-                                        </div>
-                                    </label>
+                                <label class="block text-sm font-medium mb-2 text-tg-text">Предпочитаемый стиль</label>
+                                <div class="space-y-2">
+                                    ${styles.map(style => `
+                                        <button type="button"
+                                                class="w-full text-left p-3 border rounded-lg ${this.userData.training_style === style.value ? 'selected border-tg-button' : 'border-tg-hint'}"
+                                                onclick="app.selectTrainingStyle('${style.value}')">
+                                            <div class="font-medium ${this.userData.training_style === style.value ? 'text-tg-button' : 'text-tg-text'}">${style.text}</div>
+                                            <div class="text-sm text-tg-hint">${style.desc}</div>
+                                        </button>
+                                    `).join('')}
                                 </div>
                             </div>
                         </div>
@@ -460,38 +589,27 @@
             renderStep5() {
                 return `
                     <div class="fade-in">
-                        <h2 class="text-2xl font-semibold mb-6 text-gray-800">Шаг 5: Ограничения и предпочтения</h2>
+                        <h2 class="text-lg font-semibold mb-4 text-tg-text">5. Ограничения и предпочтения</h2>
 
-                        <div class="space-y-6">
+                        <div class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Ограничения по здоровью</label>
-                                <textarea id="health-restrictions" rows="3"
-                                          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                          placeholder="Например: проблемы с коленями, боль в пояснице, гипертония...">${this.userData.step5.health_restrictions || ''}</textarea>
-                                <p class="text-sm text-gray-500 mt-1">Важно! Эти ограничения будут строго учитываться при создании программы</p>
+                                <label class="block text-sm font-medium mb-2 text-tg-text">Ограничения по здоровью</label>
+                                <textarea id="health-restrictions"
+                                          class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-tg-button focus:border-transparent"
+                                          rows="2"
+                                          placeholder="Например: проблемы с коленями, боль в спине... (оставьте пустым, если нет)"
+                                          onchange="app.updateField('health_restrictions', this.value)">${this.userData.health_restrictions || ''}</textarea>
+                                <p class="text-xs text-tg-hint mt-1">Будут строго учтены в программе</p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-700">Приоритетные зоны и предпочтения</label>
-                                <textarea id="preferences" rows="3"
-                                          class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                          placeholder="Например: хочу набрать массу в ногах, уделить внимание прессу, не люблю кардио...">${this.userData.step5.preferences || ''}</textarea>
-                                <p class="text-sm text-gray-500 mt-1">Что для вас особенно важно? Какие зоны хотите развить в первую очередь?</p>
-                            </div>
-
-                            <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                <div class="flex items-start">
-                                    <div class="flex-shrink-0 text-blue-500 mt-0.5">
-                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm text-blue-700">
-                                            <strong>Почему это важно:</strong> Эти данные позволяют создать максимально персонализированную программу, которая будет эффективной и безопасной именно для вас.
-                                        </p>
-                                    </div>
-                                </div>
+                                <label class="block text-sm font-medium mb-2 text-tg-text">Приоритетные зоны и предпочтения</label>
+                                <textarea id="preferences"
+                                          class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-tg-button focus:border-transparent"
+                                          rows="2"
+                                          placeholder="Например: хочу больше внимания ногам, не люблю кардио, предпочитаю свободные веса..."
+                                          onchange="app.updateField('preferences', this.value)">${this.userData.preferences || ''}</textarea>
+                                <p class="text-xs text-tg-hint mt-1">Помогите создать идеальную программу</p>
                             </div>
                         </div>
                     </div>
@@ -501,72 +619,193 @@
             renderResult() {
                 return `
                     <div class="fade-in">
-                        <h2 class="text-2xl font-semibold mb-6 text-green-600">🎉 Ваша программа тренировок готова!</h2>
+                        <h2 class="text-lg font-semibold mb-4 text-green-600">🎉 Ваша программа готова!</h2>
 
-                        <div class="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0 text-green-500">
-                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div class="ml-3">
-                                    <p class="text-sm text-green-700">
-                                        Программа успешно сгенерирована на основе ваших данных. Ниже представлен ваш индивидуальный план тренировок.
-                                    </p>
-                                </div>
-                            </div>
+                        <div class="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                            <p class="text-sm text-green-700">
+                                Программа успешно создана на основе ваших данных!
+                            </p>
                         </div>
 
-                        <div id="program-content" class="bg-gray-50 border border-gray-200 rounded-lg p-6 whitespace-pre-wrap font-mono text-gray-800 max-h-[500px] overflow-y-auto"></div>
+                        <div id="program-content" class="bg-tg-secondary border border-tg-hint rounded-lg p-4 whitespace-pre-wrap text-sm max-h-96 overflow-y-auto mb-4 text-tg-text">
+                            ${this.programContent || 'Загрузка программы...'}
+                        </div>
 
-                        <div class="mt-6 flex justify-between">
+                        <div class="flex space-x-3">
                             <button onclick="app.startNew()"
-                                    class="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="flex-1 py-3 tg-button text-white rounded-lg hover:opacity-90 transition flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
                                 Новая программа
                             </button>
                             <button onclick="app.downloadProgram()"
-                                    class="px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="flex-1 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center justify-center">
+                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                 </svg>
-                                Скачать программу
+                                Скачать
                             </button>
                         </div>
+
+                        ${this.tg ? `
+                            <div class="mt-4">
+                                <button onclick="app.shareProgram()"
+                                        class="w-full py-3 tg-secondary-bg text-tg-text rounded-lg hover:opacity-90 transition flex items-center justify-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                    </svg>
+                                    Поделиться
+                                </button>
+                            </div>
+                        ` : ''}
                     </div>
                 `;
             }
 
-            // Вспомогательные методы
+            // Методы выбора значений
+            selectGender(gender) {
+                this.userData.gender = gender;
+                this.updateMainButton();
+                this.render();
+            }
+
+            selectGoal(goal) {
+                this.userData.goal = goal;
+                this.updateMainButton();
+                this.render();
+            }
+
+            selectExperience(exp) {
+                this.userData.last_trained = exp;
+                this.updateMainButton();
+                this.render();
+            }
+
             selectWorkoutsPerWeek(num) {
-                this.userData.step4.workouts_per_week = num;
+                this.userData.workouts_per_week = num;
+                this.updateMainButton();
                 this.render();
             }
 
             selectWorkoutDuration(minutes) {
-                this.userData.step4.workout_duration = minutes;
+                this.userData.workout_duration = minutes;
+                this.updateMainButton();
                 this.render();
             }
 
+            selectTrainingStyle(style) {
+                this.userData.training_style = style;
+                this.updateMainButton();
+                this.render();
+            }
+
+            updateField(field, value) {
+                this.userData[field] = value;
+                this.updateMainButton();
+            }
+
+            attachEventListeners() {
+                // Слайдер месяцев
+                const monthsSlider = document.getElementById('months');
+                const monthsValue = document.getElementById('months-value');
+                if (monthsSlider && monthsValue) {
+                    monthsSlider.addEventListener('input', (e) => {
+                        monthsValue.textContent = e.target.value;
+                        this.userData.months = parseInt(e.target.value);
+                    });
+                }
+
+                // Автосохранение при изменении полей ввода
+                const inputs = this.querySelectorAll('input, textarea, select');
+                inputs.forEach(input => {
+                    if (!input.onchange) {
+                        input.addEventListener('change', (e) => {
+                            const field = e.target.id;
+                            const value = e.target.value;
+                            this.updateField(field, value);
+                        });
+                    }
+                });
+            }
+
+            validateCurrentStep() {
+                switch(this.currentStep) {
+                    case 1:
+                        return this.userData.gender &&
+                               this.userData.age &&
+                               this.userData.height &&
+                               this.userData.weight;
+                    case 2:
+                        if (!this.userData.goal) return false;
+                        if (this.userData.goal === 'custom' && !this.userData.custom_goal) return false;
+                        return this.userData.months && this.userData.months >= 1 && this.userData.months <= 12;
+                    case 3:
+                        return this.userData.current_results && this.userData.last_trained;
+                    case 4:
+                        return this.userData.workouts_per_week &&
+                               this.userData.workout_duration &&
+                               this.userData.training_style;
+                    case 5:
+                        return true; // Эти поля не обязательны
+                    default:
+                        return true;
+                }
+            }
+
+            getStepData() {
+                const data = {};
+
+                switch(this.currentStep) {
+                    case 1:
+                        data.gender = this.userData.gender;
+                        data.age = parseInt(this.userData.age) || null;
+                        data.height = parseInt(this.userData.height) || null;
+                        data.weight = parseInt(this.userData.weight) || null;
+                        break;
+                    case 2:
+                        data.goal = this.userData.goal;
+                        data.custom_goal = this.userData.goal === 'custom' ? this.userData.custom_goal : '';
+                        data.months = parseInt(this.userData.months) || 3;
+                        break;
+                    case 3:
+                        data.current_results = this.userData.current_results || '';
+                        data.last_trained = this.userData.last_trained;
+                        break;
+                    case 4:
+                        data.workouts_per_week = parseInt(this.userData.workouts_per_week) || null;
+                        data.workout_duration = parseInt(this.userData.workout_duration) || null;
+                        data.training_style = this.userData.training_style;
+                        break;
+                    case 5:
+                        data.health_restrictions = this.userData.health_restrictions || '';
+                        data.preferences = this.userData.preferences || '';
+                        break;
+                }
+
+                return data;
+            }
+
             async nextStep() {
-                const stepData = this.getStepData(this.currentStep);
-                if (!this.validateStep(this.currentStep, stepData)) {
+                if (!this.validateCurrentStep()) {
+                    this.showError('Пожалуйста, заполните все обязательные поля');
                     return;
                 }
 
-                // Сохраняем данные локально
-                this.userData[`step${this.currentStep}`] = stepData;
+                const stepData = this.getStepData();
+                console.log(`Saving step ${this.currentStep}:`, stepData);
 
-                const result = await this.saveStep(stepData);
-                if (result && result.status === 'success') {
-                    if (this.currentStep < this.totalSteps) {
-                        this.currentStep++;
-                        this.render();
-                        this.attachEventListeners();
-                    }
+                const result = await this.saveStep(this.currentStep, stepData);
+                if (!result) {
+                    this.showError('Не удалось сохранить данные. Попробуйте еще раз.');
+                    return;
+                }
+
+                if (this.currentStep < this.totalSteps) {
+                    this.currentStep++;
+                    this.render();
+                } else if (this.currentStep === this.totalSteps) {
+                    await this.generateAndShowProgram();
                 }
             }
 
@@ -574,158 +813,72 @@
                 if (this.currentStep > 1) {
                     this.currentStep--;
                     this.render();
-                    this.attachEventListeners();
                 }
             }
 
-            async finalize() {
-                const stepData = this.getStepData(this.currentStep);
-                if (!this.validateStep(this.currentStep, stepData)) {
-                    return;
-                }
-
-                this.userData[`step${this.currentStep}`] = stepData;
-                await this.saveStep(stepData);
-
-                this.currentStep = 6;
-                this.render();
-
+            async generateAndShowProgram() {
+                console.log('Generating program...');
                 const result = await this.generateProgram();
+
                 if (result && result.content) {
-                    document.getElementById('program-content').textContent = result.content;
+                    this.programContent = result.content;
+                    this.currentStep = 6;
+                    this.render();
+
+                    // Настраиваем кнопку "Поделиться" в Telegram
+                    if (this.tg) {
+                        this.setupShareButton();
+                    }
+                } else {
+                    this.showError('Не удалось получить программу. Попробуйте еще раз.');
                 }
             }
 
-            getStepData(step) {
-                switch(step) {
-                    case 1:
-                        const genderRadio = document.querySelector('input[name="gender"]:checked');
-                        return {
-                            gender: genderRadio ? genderRadio.value : null,
-                            age: parseInt(document.getElementById('age')?.value) || null,
-                            height: parseInt(document.getElementById('height')?.value) || null,
-                            weight: parseInt(document.getElementById('weight')?.value) || null
-                        };
-                    case 2:
-                        const goalRadio = document.querySelector('input[name="goal"]:checked');
-                        const customGoalInput = document.getElementById('custom-goal');
-                        return {
-                            goal: goalRadio ? goalRadio.value : null,
-                            custom_goal: goalRadio?.value === 'custom' ? (customGoalInput?.value || '') : '',
-                            months: parseInt(document.getElementById('months')?.value) || 3
-                        };
-                    case 3:
-                        const lastTrainedRadio = document.querySelector('input[name="last_trained"]:checked');
-                        return {
-                            current_results: document.getElementById('current-results')?.value || '',
-                            last_trained: lastTrainedRadio ? lastTrainedRadio.value : null
-                        };
-                    case 4:
-                        const styleRadio = document.querySelector('input[name="training_style"]:checked');
-                        return {
-                            workouts_per_week: this.userData.step4.workouts_per_week || null,
-                            workout_duration: this.userData.step4.workout_duration || null,
-                            training_style: styleRadio ? styleRadio.value : null
-                        };
-                    case 5:
-                        return {
-                            health_restrictions: document.getElementById('health-restrictions')?.value || '',
-                            preferences: document.getElementById('preferences')?.value || ''
-                        };
-                    default:
-                        return {};
-                }
-            }
-
-            validateStep(step, data) {
-                switch(step) {
-                    case 1:
-                        if (!data.gender || !data.age || !data.height || !data.weight) {
-                            this.showError('Пожалуйста, заполните все поля');
-                            return false;
-                        }
-                        if (data.age < 10 || data.age > 100) {
-                            this.showError('Возраст должен быть от 10 до 100 лет');
-                            return false;
-                        }
-                        return true;
-                    case 2:
-                        if (!data.goal) {
-                            this.showError('Пожалуйста, выберите цель');
-                            return false;
-                        }
-                        if (data.goal === 'custom' && !data.custom_goal) {
-                            this.showError('Пожалуйста, опишите вашу цель');
-                            return false;
-                        }
-                        return true;
-                    // ... аналогичные проверки для остальных шагов
-                    default:
-                        return true;
+            setupShareButton() {
+                if (this.tg) {
+                    this.tg.ShareButton.show();
+                    this.tg.ShareButton.setParams({
+                        text: 'Посмотрите мою программу тренировок!',
+                        url: window.location.href
+                    });
                 }
             }
 
             showError(message) {
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50 fade-in';
-                errorDiv.innerHTML = `
-                    <div class="flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        ${message}
-                    </div>
-                `;
-                document.body.appendChild(errorDiv);
-                setTimeout(() => errorDiv.remove(), 5000);
+                if (this.tg) {
+                    this.tg.showAlert(message);
+                } else {
+                    alert(message);
+                }
             }
 
-            attachEventListeners() {
-                // Обработчик для слайдера месяцев
-                const monthsSlider = document.getElementById('months');
-                const monthsValue = document.getElementById('months-value');
-                if (monthsSlider && monthsValue) {
-                    monthsSlider.addEventListener('input', (e) => {
-                        monthsValue.textContent = `${e.target.value} месяцев`;
-                    });
-                }
-
-                // Обработчик для кастомной цели
-                const customGoalRadio = document.querySelector('input[name="goal"][value="custom"]');
-                const customGoalInput = document.getElementById('custom-goal');
-                if (customGoalRadio && customGoalInput) {
-                    customGoalRadio.addEventListener('change', (e) => {
-                        if (e.target.checked) {
-                            customGoalInput.classList.remove('hidden');
-                        }
-                    });
-
-                    Array.from(document.querySelectorAll('input[name="goal"]')).forEach(radio => {
-                        if (radio.value !== 'custom') {
-                            radio.addEventListener('change', () => {
-                                customGoalInput.classList.add('hidden');
-                            });
-                        }
-                    });
+            shareProgram() {
+                if (this.tg && this.programContent) {
+                    const shareText = `Моя программа тренировок:\n\n${this.programContent.substring(0, 100)}...\n\nСоздано в @bullbads_event_bot`;
+                    this.tg.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(shareText)}`);
                 }
             }
 
             startNew() {
                 this.currentStep = 1;
-                this.userData = {
-                    step1: {}, step2: {}, step3: {}, step4: {}, step5: {}
-                };
-                this.startSession();
+                this.userData = {};
+                this.programContent = null;
+                this.sessionId = null;
                 this.render();
+                this.startSession();
             }
 
             downloadProgram() {
-                const content = document.getElementById('program-content').textContent;
-                const blob = new Blob([content], { type: 'text/plain' });
+                if (!this.programContent) {
+                    this.showError('Нет программы для скачивания');
+                    return;
+                }
+
+                const blob = new Blob([this.programContent], { type: 'text/plain;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `программа_тренировок_${new Date().toLocaleDateString()}.txt`;
+                a.download = `программа_тренировок_${new Date().toISOString().split('T')[0]}.txt`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -733,14 +886,23 @@
             }
         }
 
-        // Регистрируем кастомный элемент
+        // Регистрируем и инициализируем приложение
         customElements.define('fitness-app', FitnessApp);
 
-        // Инициализация при загрузке страницы
+        // Запуск при загрузке страницы
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, initializing app...');
             const app = new FitnessApp();
             document.getElementById('app').appendChild(app);
             window.app = app;
+
+            // Обработка изменений темы Telegram
+            if (window.Telegram?.WebApp) {
+                window.Telegram.WebApp.onEvent('themeChanged', () => {
+                    console.log('Theme changed, reapplying...');
+                    window.app.applyTelegramTheme();
+                });
+            }
         });
     </script>
 </body>

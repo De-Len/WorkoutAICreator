@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import Optional
 from uuid import UUID
 from datetime import datetime
+
+from pydantic.v1 import validator
 
 from src.core.entities.Gender import Gender
 from src.core.entities.GoalType import GoalType
@@ -34,9 +36,17 @@ class UserProfileStep5DTO(BaseModel):
     health_restrictions: str = Field(min_length=1, max_length=1000)
     preferences: str = Field(min_length=1, max_length=1000)
 
+
 class CreateUserProfileDTO(BaseModel):
     telegram_id: Optional[str] = None
-    session_id: str
+
+    # session_id убрали - БД сама сгенерирует
+
+    @validator('telegram_id', pre=True)
+    def convert_telegram_id(cls, v):
+        if v is not None:
+            return str(v)
+        return v
 
 # DTO для исходящих данных
 class UserProfileResponseDTO(BaseModel):

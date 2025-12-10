@@ -28,15 +28,40 @@ def get_use_cases():
 
 
 @router.message(Command("start"))
-async def cmd_start(message: types.Message, state: FSMContext):
+async def cmd_start(message: types.Message):
+    # URL для Mini App - твой облачный адрес
+    web_app_url = "https://manually-effective-dipper.cloudpub.ru"
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="🏋️ Открыть приложение",
+                web_app=WebAppInfo(url=web_app_url)
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text="ℹ️ Помощь",
+                callback_data="help"
+            )
+        ]
+    ])
+
     await message.answer(
-        "🏋️ Добро пожаловать в генератор программ тренировок!\n\n"
-        "Я помогу создать персонализированную программу тренировок "
-        "на основе ваших целей и возможностей.\n\n"
-        "Используйте команды:\n"
-        "/form - начать заполнение формы\n"
-        "/web - открыть веб-интерфейс\n"
-        "/cancel - отменить текущее заполнение"
+        "🏋️ Добро пожаловать в генератор тренировок!\n\n"
+        "Нажмите кнопку ниже, чтобы открыть приложение:",
+        reply_markup=keyboard
+    )
+
+
+@router.callback_query(F.data == "help")
+async def show_help(callback: types.CallbackQuery):
+    await callback.message.answer(
+        "📱 Это мини-приложение в Telegram позволяет:\n"
+        "1. Создать персонализированную программу тренировок\n"
+        "2. Сохранить ваши данные\n"
+        "3. Получить рекомендации от ИИ\n\n"
+        "Просто нажмите кнопку 'Открыть приложение'!"
     )
 
 
@@ -58,79 +83,3 @@ async def cmd_web(message: types.Message):
     )
 
 
-@router.message(Command("form"))
-async def cmd_form(message: types.Message, state: FSMContext):
-    # Начинаем новую сессию
-    session_id = str(uuid.uuid4())
-    await state.update_data(session_id=session_id)
-
-    # Создаем профиль в БД
-    use_cases = get_use_cases()
-    dto = CreateUserProfileDTO(
-        telegram_id=str(message.from_user.id),
-        session_id=session_id
-    )
-
-    try:
-        await use_cases.create_profile(dto)
-
-        # Начинаем заполнение формы
-        await message.answer(
-            "Шаг 1 из 5: Расскажите о себе\n\n"
-            "Выберите ваш пол:",
-            reply_markup=get_gender_keyboard()
-        )
-        await state.set_state(UserProfileStates.waiting_gender)
-    except Exception as e:
-        await message.answer(f"Ошибка: {str(e)}")
-
-
-@router.callback_query(F.data.startswith("gender_"))
-async def process_gender(callback: types.CallbackQuery, state: FSMContext):
-    gender_value = callback.data.split("_")[1]
-
-    # Сохраняем в состоянии
-    await state.update_data(gender=gender_value)
-
-    await callback.message.edit_text("✅ Пол сохранен")
-    await callback.message.answer(
-        "Шаг 1 из 5: Расскажите о себе\n\n"
-        "Введите ваш возраст (лет):"
-    )
-    await state.set_state(UserProfileStates.waiting_age)
-
-
-@router.message(UserProfileStates.waiting_age)
-async def process_age(message: types.Message, state: FSMContext):
-    try:
-        age = int(message.text)
-        if age < 10 or age > 100:
-            await message.answer("Пожалуйста, введите возраст от 10 до 100 лет:")
-            return
-
-        # Сохраняем шаг в БД
-        state_data = await state.get_data()
-        use_cases = get_use_cases()
-
-        dto = UserProfileStep1DTO(
-            gender=state_data['gender'],
-            age=age,
-            height=0,  # временные значения
-            weight=0
-        )
-
-        await use_cases.update_step1(state_data['session_id'], dto)
-
-        await message.answer("✅ Возраст сохранен")
-        await message.answer("Введите ваш рост (в см):")
-        await state.set_state(UserProfileStates.waiting_height)
-    except ValueError:
-        await message.answer("Пожалуйста, введите число:")
-
-
-# Аналогичные обработчики для остальных шагов...
-
-@router.message(Command("cancel"))
-async def cmd_cancel(message: types.Message, state: FSMContext):
-    await state.clear()
-    await message.answer("Заполнение формы отменено.")

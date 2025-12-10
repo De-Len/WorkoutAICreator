@@ -1,3 +1,4 @@
+import uuid
 from typing import Optional, List
 from uuid import UUID
 from sqlalchemy.orm import Session
@@ -29,7 +30,25 @@ class SQLAlchemyUserProfileRepository(UserProfileRepository):
         return self._to_domain(model) if model else None
 
     async def get_by_session_id(self, session_id: str) -> Optional[UserProfile]:
+        print(f"DB: Looking for profile with session_id='{session_id}'")
+
+        # Попробуй разные варианты поиска
         model = self.session.query(UserProfileModel).filter_by(session_id=session_id).first()
+
+        if not model:
+            print(f"DB: Not found by session_id, trying by id...")
+            # Может быть session_id на самом деле это id профиля?
+            try:
+                model = self.session.query(UserProfileModel).filter_by(id=uuid.UUID(session_id)).first()
+            except:
+                pass
+
+        if not model:
+            print(f"DB: Still not found, listing all profiles:")
+            all_models = self.session.query(UserProfileModel).all()
+            for m in all_models:
+                print(f"  - ID: {m.id}, Session ID: {m.session_id}, Gender: {m.gender}")
+
         return self._to_domain(model) if model else None
 
     async def save(self, profile: UserProfile) -> UserProfile:

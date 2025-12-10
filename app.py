@@ -17,13 +17,11 @@ from src.presentation.web.routes import router as web_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan для FastAPI приложения"""
-    # Инициализация БД
     UnitOfWork.init_database()
     print("Database initialized")
 
     yield
 
-    # Завершение работы
     print("Application shutting down")
 
 
