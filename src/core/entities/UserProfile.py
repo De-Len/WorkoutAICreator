@@ -54,7 +54,6 @@ class UserProfile:
 
     def is_complete(self) -> bool:
         """Проверка, заполнен ли профиль полностью"""
-        # Обязательные поля (не могут быть пустыми)
         required_fields = [
             self.gender, self.age, self.height, self.weight,
             self.goal, self.months,

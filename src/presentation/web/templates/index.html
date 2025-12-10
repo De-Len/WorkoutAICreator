@@ -105,6 +105,39 @@
             border-color: var(--tg-theme-button-color) !important;
             background-color: rgba(36, 129, 204, 0.1) !important;
         }
+
+        /* Анимации */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Градиенты */
+        .gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .gradient-success {
+            background: linear-gradient(135deg, #0ba360 0%, #3cba92 100%);
+        }
+
+        .gradient-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        /* Анимация загрузки */
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -617,50 +650,200 @@
             }
 
             renderResult() {
+                if (!this.programContent) {
+                    return `
+                        <div class="fade-in text-center py-8">
+                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 tg-button mx-auto mb-4"></div>
+                            <h2 class="text-lg font-semibold mb-2 text-tg-text">🎯 Генерируем вашу программу...</h2>
+                            <p class="text-sm text-tg-hint">Это займет несколько секунд</p>
+                        </div>
+                    `;
+                }
+
+                // Форматируем контент от ChatGPT
+                const formattedContent = this.formatProgramContent(this.programContent);
+
                 return `
                     <div class="fade-in">
-                        <h2 class="text-lg font-semibold mb-4 text-green-600">🎉 Ваша программа готова!</h2>
-
-                        <div class="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                            <p class="text-sm text-green-700">
-                                Программа успешно создана на основе ваших данных!
+                        <!-- Шапка результата -->
+                        <div class="text-center mb-6">
+                            <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-r from-green-100 to-blue-100 mb-3">
+                                <span class="text-2xl">🎉</span>
+                            </div>
+                            <h2 class="text-xl font-bold mb-2 text-green-600">Ваша программа готова!</h2>
+                            <p class="text-sm text-tg-hint">
+                                Персональная программа на основе ваших данных
                             </p>
                         </div>
 
-                        <div id="program-content" class="bg-tg-secondary border border-tg-hint rounded-lg p-4 whitespace-pre-wrap text-sm max-h-96 overflow-y-auto mb-4 text-tg-text">
-                            ${this.programContent || 'Загрузка программы...'}
+                        <!-- Карточка с программой -->
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+                            <!-- Заголовок карточки -->
+                            <div class="bg-gradient-to-r from-green-50 to-blue-50 px-4 py-3 border-b border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h3 class="font-bold text-gray-800">🏋️ Персональный план тренировок</h3>
+                                        <p class="text-xs text-gray-600 mt-1">Создано: ${new Date().toLocaleDateString('ru-RU')}</p>
+                                    </div>
+                                    <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-medium rounded-full">
+                                        🔥 Персональный
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Содержание программы -->
+                            <div id="program-content" class="p-4 max-h-96 overflow-y-auto program-content">
+                                ${formattedContent}
+                            </div>
+
+                            <!-- Статистика -->
+                            <div class="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                                <div class="flex items-center justify-between text-sm">
+                                    <div class="flex items-center text-gray-600">
+                                        <span class="mr-2">📅</span>
+                                        <span>${this.userData.months || 3} месяцев</span>
+                                    </div>
+                                    <div class="flex items-center text-gray-600">
+                                        <span class="mr-2">⏱️</span>
+                                        <span>${this.userData.workout_duration || 60} мин/тренировка</span>
+                                    </div>
+                                    <div class="flex items-center text-gray-600">
+                                        <span class="mr-2">📊</span>
+                                        <span>${this.userData.workouts_per_week || 3} раз/неделя</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="flex space-x-3">
-                            <button onclick="app.startNew()"
-                                    class="flex-1 py-3 tg-button text-white rounded-lg hover:opacity-90 transition flex items-center justify-center">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                </svg>
-                                Новая программа
-                            </button>
+                        <!-- Кнопки действий -->
+                        <div class="space-y-3">
                             <button onclick="app.downloadProgram()"
-                                    class="flex-1 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition flex items-center justify-center">
-                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                    class="w-full py-3.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-300 flex items-center justify-center shadow-sm hover:shadow-md">
+                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                 </svg>
-                                Скачать
+                                📥 Скачать программу
                             </button>
-                        </div>
 
-                        ${this.tg ? `
-                            <div class="mt-4">
-                                <button onclick="app.shareProgram()"
-                                        class="w-full py-3 tg-secondary-bg text-tg-text rounded-lg hover:opacity-90 transition flex items-center justify-center">
+                            <div class="grid grid-cols-2 gap-3">
+                                <button onclick="app.startNew()"
+                                        class="py-3 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition flex items-center justify-center">
                                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                                     </svg>
-                                    Поделиться
+                                    Новая программа
+                                </button>
+
+                                <button onclick="app.copyToClipboard()"
+                                        class="py-3 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition flex items-center justify-center">
+                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                                    </svg>
+                                    Копировать
                                 </button>
                             </div>
-                        ` : ''}
+
+                            ${this.tg ? `
+                                <button onclick="app.shareProgram()"
+                                        class="w-full py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-lg hover:from-purple-600 hover:to-indigo-700 transition-all duration-300 flex items-center justify-center shadow-sm hover:shadow-md">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                                    </svg>
+                                    📤 Поделиться в Telegram
+                                </button>
+                            ` : ''}
+                        </div>
+
+                        <!-- Советы -->
+                        <div class="mt-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                            <div class="flex items-start">
+                                <span class="text-blue-500 mr-2">💡</span>
+                                <div class="text-sm text-blue-800">
+                                    <p class="font-medium mb-1">Рекомендации:</p>
+                                    <ul class="list-disc pl-4 space-y-1">
+                                        <li>Начинайте с легких весов</li>
+                                        <li>Пейте воду во время тренировки</li>
+                                        <li>Не забывайте про разминку и заминку</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `;
+            }
+
+            // Метод для форматирования текста от ChatGPT
+            formatProgramContent(content) {
+                if (!content) return '<p class="text-gray-500 italic">Программа не загружена</p>';
+
+                // Улучшаем форматирование
+                let formatted = content
+                    // Заголовки
+                    .replace(/^(#{1,3})\s*(.+)$/gm, (match, hashes, text) => {
+                        const level = hashes.length;
+                        const colors = ['text-green-700', 'text-blue-700', 'text-gray-800'];
+                        const sizes = ['text-xl', 'text-lg', 'text-md'];
+                        return `<h${level} class="font-bold ${sizes[level-1]} ${colors[level-1]} mt-4 mb-2 pb-1 border-b">${text}</h${level}>`;
+                    })
+                    // Жирный текст
+                    .replace(/\*\*(.+?)\*\*/g, '<strong class="font-bold">$1</strong>')
+                    // Курсив
+                    .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
+                    // Списки
+                    .replace(/^[•\-]\s+(.+)$/gm, '<li class="ml-4 mb-1">• $1</li>')
+                    .replace(/^\d+\.\s+(.+)$/gm, '<li class="ml-4 mb-1">$&</li>')
+                    // Абзацы
+                    .split('\n\n')
+                    .map(paragraph => {
+                        if (paragraph.trim() === '') return '';
+                        if (paragraph.startsWith('<')) return paragraph;
+                        return `<p class="mb-3 leading-relaxed">${paragraph}</p>`;
+                    })
+                    .join('');
+
+                // Оборачиваем списки
+                formatted = formatted
+                    .replace(/(<li[^>]*>.*<\/li>)/gms, '<ul class="list-none pl-4 my-3 space-y-1">$1</ul>')
+                    .replace(/<\/ul>\s*<ul/g, '</ul><ul');
+
+                return formatted;
+            }
+
+            // Метод для копирования в буфер обмена
+            copyToClipboard() {
+                if (!this.programContent) {
+                    this.showError('Нет программы для копирования');
+                    return;
+                }
+
+                navigator.clipboard.writeText(this.programContent)
+                    .then(() => {
+                        this.showSuccess('Программа скопирована в буфер обмена!');
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy:', err);
+                        this.showError('Не удалось скопировать программу');
+                    });
+            }
+
+            showSuccess(message) {
+                if (this.tg) {
+                    this.tg.showAlert(message);
+                } else {
+                    // Создаем красивый тост
+                    const toast = document.createElement('div');
+                    toast.className = 'fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg animate-fade-in z-50';
+                    toast.textContent = message;
+                    document.body.appendChild(toast);
+
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 3000);
+                }
             }
 
             // Методы выбора значений
@@ -727,6 +910,47 @@
                         });
                     }
                 });
+
+                // Добавляем стили для форматированного контента
+                const style = document.createElement('style');
+                style.textContent = `
+                    .program-content {
+                        line-height: 1.6;
+                    }
+                    .program-content h1, .program-content h2, .program-content h3 {
+                        font-weight: 700;
+                        margin-top: 1.5rem;
+                        margin-bottom: 0.75rem;
+                    }
+                    .program-content ul, .program-content ol {
+                        padding-left: 1.5rem;
+                        margin: 0.75rem 0;
+                    }
+                    .program-content li {
+                        margin-bottom: 0.5rem;
+                    }
+                    .program-content strong {
+                        color: #1f2937;
+                    }
+                    .program-content {
+                        scroll-behavior: smooth;
+                    }
+                    .program-content::-webkit-scrollbar {
+                        width: 6px;
+                    }
+                    .program-content::-webkit-scrollbar-track {
+                        background: #f1f1f1;
+                        border-radius: 3px;
+                    }
+                    .program-content::-webkit-scrollbar-thumb {
+                        background: #c1c1c1;
+                        border-radius: 3px;
+                    }
+                    .program-content::-webkit-scrollbar-thumb:hover {
+                        background: #a1a1a1;
+                    }
+                `;
+                document.head.appendChild(style);
             }
 
             validateCurrentStep() {
@@ -795,7 +1019,7 @@
                 const stepData = this.getStepData();
                 console.log(`Saving step ${this.currentStep}:`, stepData);
 
-                const result = await this.saveStep(stepData);  // <-- УБРАТЬ this.currentStep
+                const result = await this.saveStep(stepData);
                 if (!result) {
                     this.showError('Не удалось сохранить данные. Попробуйте еще раз.');
                     return;

@@ -1,5 +1,4 @@
 import aiohttp
-import json
 from typing import Dict
 
 from openai import AsyncOpenAI
@@ -18,16 +17,6 @@ class OpenRouterLLMService(LLMService):
             api_key=config.llm.api_key,
             base_url=config.llm.api_url,
         )
-
-    # async def generate_response(self, messages: list) -> str:
-    #     try:
-    #         chat_completion = await self.client.chat.completions.create(
-    #             model=self.model_name,
-    #             messages=messages
-    #         )
-    #         return chat_completion.choices[0].message.content
-    #     except Exception as e:
-    #         raise LLMError(f"Ошибка при запросе к DeepSeek API: {e}")
 
     async def generate_training_program(self, user_data: Dict) -> str:
         """Генерация программы тренировок через LLM"""
@@ -48,21 +37,6 @@ class OpenRouterLLMService(LLMService):
             ]
 
         try:
-            # async with aiohttp.ClientSession() as session:
-            #     async with session.post(
-            #             self.api_url,
-            #             json=payload,
-            #             headers=headers,
-            #             timeout=30
-            #     ) as response:
-            #         if response.status == 200:
-            #             result = await response.json()
-            #             return result['choices'][0]['message']['content']
-            #         else:
-            #             error_text = await response.text()
-            #             raise LLMServiceError(
-            #                 f"API error {response.status}: {error_text}"
-            #             )
             chat_completion = await self.client.chat.completions.create(
                 model=self.model_name,
                 messages=messages
@@ -72,42 +46,20 @@ class OpenRouterLLMService(LLMService):
             raise LLMServiceError(f"Network error: {str(e)}")
 
     def _create_prompt(self, user_data: Dict) -> str:
-        """Создание промпта для LLM"""
+        """Создание компактного промпта для LLM"""
 
-        prompt = f"""Создай подробную программу тренировок на основе следующих данных:
+        # Создайте более компактный запрос
+        return f"""Создай программу тренировок для:
+    Пол: {user_data.get('gender')}, Возраст: {user_data.get('age')}
+    Цель: {user_data.get('goal')} за {user_data.get('months')} месяцев
+    Опыт: {user_data.get('last_trained')}
+    Тренировок/неделю: {user_data.get('workouts_per_week')} по {user_data.get('workout_duration')} мин
+    Стиль: {user_data.get('training_style')}
+    Ограничения: {user_data.get('health_restrictions') or 'нет'}
+    Предпочтения: {user_data.get('preferences') or 'стандартные'}
 
-1. О пользователе:
-   - Пол: {user_data.get('gender')}
-   - Возраст: {user_data.get('age')} лет
-   - Рост: {user_data.get('height')} см
-   - Вес: {user_data.get('weight')} кг
-
-2. Цель:
-   - Основная цель: {user_data.get('goal')}
-   - Дополнительное описание: {user_data.get('custom_goal', 'не указано')}
-   - Срок: {user_data.get('months')} месяцев
-
-3. Текущие результаты и опыт:
-   - Лучшие результаты: {user_data.get('current_results')}
-   - Когда тренировался последний раз: {user_data.get('last_trained')}
-
-4. Расписание тренировок:
-   - Тренировок в неделю: {user_data.get('workouts_per_week')}
-   - Длительность тренировки: {user_data.get('workout_duration')} минут
-   - Предпочитаемый стиль: {user_data.get('training_style')}
-
-5. Ограничения и предпочтения:
-   - Ограничения по здоровью: {user_data.get('health_restrictions')}
-   - Приоритеты и предпочтения: {user_data.get('preferences')}
-
-Создай программу, которая включает:
-1. Общий план на весь период
-2. Еженедельное расписание тренировок
-3. Конкретные упражнения с подходами и повторениями
-4. Рекомендации по прогрессии нагрузок
-5. Советы по восстановлению
-6. Обрати внимание на ограничения по здоровью
-
-Отформатируй ответ в структурированном виде с разделами и подразделами."""
-
-        return prompt
+    Создай структурированную программу с:
+    1. Еженедельным планом
+    2. Упражнениями и подходами
+    3. Прогрессией нагрузок
+    4. Рекомендациями"""
