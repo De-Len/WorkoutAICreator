@@ -795,7 +795,7 @@
                 const stepData = this.getStepData();
                 console.log(`Saving step ${this.currentStep}:`, stepData);
 
-                const result = await this.saveStep(this.currentStep, stepData);
+                const result = await this.saveStep(stepData);  // <-- УБРАТЬ this.currentStep
                 if (!result) {
                     this.showError('Не удалось сохранить данные. Попробуйте еще раз.');
                     return;

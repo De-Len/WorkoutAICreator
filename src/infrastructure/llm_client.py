@@ -2,6 +2,8 @@ import aiohttp
 import json
 from typing import Dict
 
+from openai import AsyncOpenAI
+
 from config import Config
 from src.application.exceptions import LLMServiceError
 from src.core.interfaces.LLMService import LLMService
@@ -14,6 +16,20 @@ class OpenRouterLLMService(LLMService):
         self.api_key = config.llm.api_key
         self.api_url = config.llm.api_url
         self.model_name = config.llm.model_name
+        # self.client = AsyncOpenAI(
+        #     api_key=config.llm.api_key,
+        #     base_url=config.llm.api_url,
+        # )
+
+    # async def generate_response(self, messages: list) -> str:
+    #     try:
+    #         chat_completion = await self.client.chat.completions.create(
+    #             model=self.model,
+    #             messages=messages
+    #         )
+    #         return chat_completion.choices[0].message.content
+    #     except Exception as e:
+    #         raise LLMError(f"Ошибка при запросе к DeepSeek API: {e}")
 
     async def generate_training_program(self, user_data: Dict) -> str:
         """Генерация программы тренировок через LLM"""
