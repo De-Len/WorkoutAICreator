@@ -24,13 +24,13 @@ class DatabaseConfig:
 class WebConfig:
     host: str = os.getenv("WEB_HOST", "0.0.0.0")  # Должно быть 0.0.0.0 для облака
     port: int = int(os.getenv("WEB_PORT", 8000))
-    external_url: str = os.getenv("EXTERNAL_URL", "https://manually-effective-dipper.cloudpub.ru")
+    external_url: str = os.getenv("EXTERNAL_URL")
     # Добавь если нужно:
-    allowed_hosts: list = field(default_factory=lambda: [
-        "manually-effective-dipper.cloudpub.ru",
-        "localhost",
-        "127.0.0.1"
-    ])
+    # allowed_hosts: list = field(default_factory=lambda: [
+    #     external_url[7:],
+    #     "localhost",
+    #     "127.0.0.1"
+    # ])
 
 @dataclass
 class Config:

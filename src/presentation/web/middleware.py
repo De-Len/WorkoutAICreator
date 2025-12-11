@@ -1,10 +1,13 @@
 from fastapi.middleware.cors import CORSMiddleware
 
+from config import config
+
+
 def setup_cors(app):
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
-            "https://manually-effective-dipper.cloudpub.ru",
+            config.web.external_url,
             "http://localhost:8080",
             "http://127.0.0.1:8080"
         ],

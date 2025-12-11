@@ -30,7 +30,7 @@ def get_use_cases():
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
     # URL для Mini App - твой облачный адрес
-    web_app_url = "https://manually-effective-dipper.cloudpub.ru"
+    web_app_url = config.web.external_url
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -67,7 +67,7 @@ async def show_help(callback: types.CallbackQuery):
 
 @router.message(Command("web"))
 async def cmd_web(message: types.Message):
-    web_app_url = "https://manually-effective-dipper.cloudpub.ru"
+    web_app_url = config.web.external_url
 
     # Используй обычную ссылку вместо Web App
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
