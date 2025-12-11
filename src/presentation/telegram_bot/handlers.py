@@ -67,28 +67,3 @@ async def show_help(callback: types.CallbackQuery):
         "3. Получить рекомендации от ИИ\n\n"
         "Просто нажмите кнопку 'Открыть приложение'!"
     )
-
-
-@router.message(Command("web"))
-async def cmd_web(message: types.Message):
-    web_app_url = config.web.external_url
-
-    user = message.from_user
-    user_tag = f"@{user.username}" if user.username else f"id{user.id}"
-    print(f"👤 {user_tag} запустил веб")
-
-    # Используй обычную ссылку вместо Web App
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(
-            text="📱 Открыть веб-форму",
-            url=web_app_url  # Просто URL, не WebApp
-        )]
-    ])
-
-
-    await message.answer(
-        "Откройте веб-форму для создания программы тренировок:",
-        reply_markup=keyboard
-    )
-
-
