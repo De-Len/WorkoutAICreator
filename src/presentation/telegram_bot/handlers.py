@@ -1,17 +1,12 @@
 from aiogram import Router, types, F
-from aiogram.fsm.context import FSMContext
 from aiogram.filters import Command
 from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 
 from config import config
-import uuid
 
 from src.application.UserProfileUseCases import UserProfileUseCases
-from src.application.dto import CreateUserProfileDTO, UserProfileStep1DTO
 from src.infrastructure.llm_client import OpenRouterLLMService
 from src.infrastructure.unit_of_work import UnitOfWork
-from src.presentation.telegram_bot.keyboards import get_gender_keyboard
-from src.presentation.telegram_bot.states import UserProfileStates
 
 router = Router()
 

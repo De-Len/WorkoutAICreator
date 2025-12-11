@@ -42,8 +42,13 @@ async def start_session(
     try:
         data = await request.json()
         user_id = data.get('user_id')
+        username = data.get("username")
+        session_id = data.get("session_id")
 
         telegram_id = str(user_id) if user_id is not None else None
+
+        user_tag = f"@{username}" if username else f"id{user_id}"
+        print(f"📱 Веб-приложение открыл: {user_tag} (сессия: {session_id})")
 
         # Создаем DTO БЕЗ session_id в DTO, пусть БД сама генерирует
         dto = CreateUserProfileDTO(
