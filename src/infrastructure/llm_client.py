@@ -50,16 +50,18 @@ class OpenRouterLLMService(LLMService):
 
         # Создайте более компактный запрос
         return f"""Создай программу тренировок для:
-    Пол: {user_data.get('gender')}, Возраст: {user_data.get('age')}
-    Цель: {user_data.get('goal')} за {user_data.get('months')} месяцев
-    Опыт: {user_data.get('last_trained')}
-    Тренировок/неделю: {user_data.get('workouts_per_week')} по {user_data.get('workout_duration')} мин
-    Стиль: {user_data.get('training_style')}
-    Ограничения: {user_data.get('health_restrictions') or 'нет'}
-    Предпочтения: {user_data.get('preferences') or 'стандартные'}
+Пол: {user_data.get('gender')}, Возраст: {user_data.get('age')}
+Цель: {user_data.get('goal')} за {user_data.get('months')} месяцев
+Опыт: {user_data.get('last_trained')}
+Тренировок/неделю: {user_data.get('workouts_per_week')} по {user_data.get('workout_duration')} мин
+Стиль: {user_data.get('training_style')}
+Ограничения: {user_data.get('health_restrictions') or 'нет'}
+Предпочтения: {user_data.get('preferences') or 'стандартные'}
 
-    Создай структурированную программу с:
-    1. Еженедельным планом
-    2. Упражнениями и подходами
-    3. Прогрессией нагрузок
-    4. Рекомендациями"""
+Создай структурированную программу с:
+1. Еженедельным планом
+2. Упражнениями и подходами
+3. Прогрессией нагрузок
+4. Рекомендациями
+
+И не делай таблицы!"""
